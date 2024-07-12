@@ -1,0 +1,12 @@
+{
+  "type": "avaritia:compressor",
+  "result": {
+    "item": "avaritia:diamond_singularity"
+  },
+  "cost": 300,
+  "ingredients": [
+    {
+      "tag": "forge:storage_blocks/diamond"
+    }
+  ]
+}

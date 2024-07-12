@@ -1,0 +1,12 @@
+{
+  "type": "avaritia:compressor",
+  "result": {
+    "item": "avaritia:copper_singularity"
+  },
+  "cost": 400,
+  "ingredients": [
+    {
+      "tag": "forge:storage_blocks/copper"
+    }
+  ]
+}
