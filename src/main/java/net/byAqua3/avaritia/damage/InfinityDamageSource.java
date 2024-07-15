@@ -10,14 +10,14 @@ import net.minecraft.world.entity.LivingEntity;
 public class InfinityDamageSource extends DamageSource {
 
 	public InfinityDamageSource(Holder<DamageType> damageType, Entity entity, Entity attacker) {
-		super(damageType, entity);
+		super(damageType, entity, attacker);
 	}
 
 	@Override
-	public Component getLocalizedDeathMessage(LivingEntity attacked) {
-		LivingEntity entity = attacked.getKillCredit();
-		String key = "death.attack.infinity." + attacked.level().getRandom().nextInt(1, 5);
-		return Component.translatable(key, attacked.getDisplayName(), entity.getDisplayName());
+	public Component getLocalizedDeathMessage(LivingEntity entity) {
+		LivingEntity attacker = entity.getKillCredit();
+		String key = "death.attack.infinity." + entity.level().getRandom().nextInt(1, 5);
+		return Component.translatable(key, entity.getDisplayName(), attacker.getDisplayName());
 	}
 
 }
