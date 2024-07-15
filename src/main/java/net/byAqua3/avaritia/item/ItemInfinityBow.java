@@ -119,6 +119,10 @@ public class ItemInfinityBow extends BowItem {
 	}
 
 	@Override
+        public void releaseUsing(ItemStack stack, Level level, LivingEntity entityLiving, int time) {
+	}
+
+	@Override
 	public AbstractArrow customArrow(AbstractArrow arrow, ItemStack stack) {
 		return new EntityInfinityArrow(arrow.level(), false);
 	}
