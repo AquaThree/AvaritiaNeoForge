@@ -56,7 +56,7 @@ public class EntityInfinityArrow extends Arrow {
 			if (this.inGround) {
 				if (!this.isImpacted()) {
 					if (!this.level().isClientSide()) {
-						for (int i = 0; i < 30; i++) {
+						for (int i = 0; i < 36; i++) {
 							double angle = this.level().getRandom().nextDouble() * 2 * Math.PI;
 							double dist = this.level().getRandom().nextGaussian() * 0.5;
 
