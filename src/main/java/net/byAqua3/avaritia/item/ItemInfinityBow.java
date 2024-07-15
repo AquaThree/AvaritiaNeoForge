@@ -119,7 +119,7 @@ public class ItemInfinityBow extends BowItem {
 	}
 
 	@Override
-        public void releaseUsing(ItemStack stack, Level level, LivingEntity entityLiving, int time) {
+        public void releaseUsing(ItemStack stack, Level level, LivingEntity livingEntity, int time) {
 	}
 
 	@Override
