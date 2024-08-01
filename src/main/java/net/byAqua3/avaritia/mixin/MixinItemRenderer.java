@@ -15,10 +15,10 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Transformation;
 
 import net.byAqua3.avaritia.Avaritia;
-import net.byAqua3.avaritia.event.AvaritiaClientEvent;
 import net.byAqua3.avaritia.item.ItemHalo;
 import net.byAqua3.avaritia.item.ItemInfinityBow;
 import net.byAqua3.avaritia.item.ItemInfinitySword;
+import net.byAqua3.avaritia.item.ItemMatterCluster;
 import net.byAqua3.avaritia.item.ItemSingularity;
 import net.byAqua3.avaritia.shader.AvaritiaCosmicShaders;
 import net.byAqua3.avaritia.shader.AvaritiaRenderType;
@@ -34,6 +34,7 @@ import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.core.Direction;
+import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.item.ItemDisplayContext;
@@ -74,7 +75,8 @@ public class MixinItemRenderer {
 	public void render(ItemStack stack, ItemDisplayContext context, boolean leftHand, PoseStack poseStack,
 			MultiBufferSource multiBufferSource, int packedLight, int packedOverlay, BakedModel model,
 			CallbackInfo callbackInfo) {
-		if (stack.getItem() instanceof ItemInfinitySword || stack.getItem() instanceof ItemInfinityBow) {
+		if (stack.getItem() instanceof ItemInfinitySword || stack.getItem() instanceof ItemInfinityBow
+				|| stack.getItem() instanceof ItemMatterCluster) {
 			callbackInfo.cancel();
 
 			poseStack.pushPose();
@@ -85,9 +87,9 @@ public class MixinItemRenderer {
 			Minecraft mc = Minecraft.getInstance();
 			ItemRenderer itemRenderer = mc.getItemRenderer();
 			for (BakedModel bakedModel : model.getRenderPasses(stack, true)) {
-				for (RenderType rendertype : bakedModel.getRenderTypes(stack, true)) {
+				for (RenderType renderType : bakedModel.getRenderTypes(stack, true)) {
 					itemRenderer.renderModelLists(bakedModel, stack, packedLight, packedOverlay, poseStack,
-							multiBufferSource.getBuffer(rendertype));
+							multiBufferSource.getBuffer(renderType));
 				}
 			}
 
@@ -96,7 +98,6 @@ public class MixinItemRenderer {
 				bufferSource.endBatch();
 			}
 
-			// RenderType COSMIC_RENDER_TYPE = RenderType.endPortal();
 			RenderType COSMIC_RENDER_TYPE = AvaritiaRenderType.COSMIC_RENDER_TYPE;
 
 			float yaw = 0.0F;
@@ -110,8 +111,7 @@ public class MixinItemRenderer {
 				pitch = -((float) ((mc.player.getXRot() * 2.0F) * Math.PI / 360.0D));
 			}
 
-			AvaritiaCosmicShaders.timeUniform
-					.set((System.currentTimeMillis() - AvaritiaClientEvent.lastTime) / 2000.0F);
+			AvaritiaCosmicShaders.timeUniform.set(mc.level.getGameTime() % Integer.MAX_VALUE);
 			AvaritiaCosmicShaders.yawUniform.set(yaw);
 			AvaritiaCosmicShaders.pitchUniform.set(pitch);
 			AvaritiaCosmicShaders.externalScaleUniform.set(scale);
@@ -142,6 +142,17 @@ public class MixinItemRenderer {
 								.getSprite(new ResourceLocation(Avaritia.MODID, "item/tools/bow/pull_1_mask")),
 						Minecraft.getInstance().getModelManager().getAtlas(InventoryMenu.BLOCK_ATLAS)
 								.getSprite(new ResourceLocation(Avaritia.MODID, "item/tools/bow/pull_2_mask")) };
+			} else if (stack.getItem() instanceof ItemMatterCluster) {
+				if (stack.hasTag() && stack.getOrCreateTag().contains("items", Tag.TAG_LIST) && ItemMatterCluster
+						.getClusterCount(ItemMatterCluster.getClusterItems(stack)) == ItemMatterCluster.CAPACITY) {
+					textureAtlasSprites = new TextureAtlasSprite[] {
+							Minecraft.getInstance().getModelManager().getAtlas(InventoryMenu.BLOCK_ATLAS)
+									.getSprite(new ResourceLocation(Avaritia.MODID, "item/matter_cluster_full_mask")) };
+				} else {
+					textureAtlasSprites = new TextureAtlasSprite[] {
+							Minecraft.getInstance().getModelManager().getAtlas(InventoryMenu.BLOCK_ATLAS).getSprite(
+									new ResourceLocation(Avaritia.MODID, "item/matter_cluster_empty_mask")) };
+				}
 			}
 
 			VertexConsumer vertexConsumer = multiBufferSource.getBuffer(COSMIC_RENDER_TYPE);
@@ -154,20 +165,22 @@ public class MixinItemRenderer {
 
 			poseStack.pushPose();
 
+			PoseStack.Pose posestack$pose = poseStack.last();
+
 			model = net.neoforged.neoforge.client.ClientHooks.handleCameraTransforms(poseStack, model, context,
 					leftHand);
 			poseStack.translate(-0.5F, -0.5F, -0.5F);
 
 			ItemRenderer itemRenderer = Minecraft.getInstance().getItemRenderer();
 			for (BakedModel bakedModel : model.getRenderPasses(stack, true)) {
-				for (RenderType rendertype : bakedModel.getRenderTypes(stack, true)) {
-					if (context == ItemDisplayContext.GUI) {
-						int type = ((ItemHalo) stack.getItem()).getType();
+				for (RenderType renderType : bakedModel.getRenderTypes(stack, true)) {
+					int type = ((ItemHalo) stack.getItem()).getType();
 
+					if (context == ItemDisplayContext.GUI) {
 						if (type == 0) {
 							poseStack.pushPose();
 
-							PoseStack.Pose posestack$pose = poseStack.last();
+							posestack$pose = poseStack.last();
 
 							float scale = new Random().nextFloat() * 0.15F + 2.45F;
 							poseStack.scale(scale, scale, 1.0F);
@@ -178,10 +191,13 @@ public class MixinItemRenderer {
 											.getSprite(new ResourceLocation(Avaritia.MODID, "item/halo128")) });
 
 							for (BakedQuad quad : quads) {
-								multiBufferSource.getBuffer(rendertype).putBulkData(posestack$pose, quad, 0.0F, 0.0F,
+								multiBufferSource.getBuffer(renderType).putBulkData(posestack$pose, quad, 0.0F, 0.0F,
 										0.0F, 0.6F, packedLight, packedOverlay, true);
 							}
 							poseStack.popPose();
+
+							scale = new Random().nextFloat() * 0.10F + 0.95F;
+							poseStack.scale(scale, scale, 1.0F);
 						} else if (type == 1) {
 							poseStack.pushPose();
 
@@ -192,14 +208,14 @@ public class MixinItemRenderer {
 									Minecraft.getInstance().getModelManager().getAtlas(InventoryMenu.BLOCK_ATLAS)
 											.getSprite(new ResourceLocation(Avaritia.MODID, "item/halo_noise")) });
 
-							itemRenderer.renderQuadList(poseStack, multiBufferSource.getBuffer(rendertype), quads,
+							itemRenderer.renderQuadList(poseStack, multiBufferSource.getBuffer(renderType), quads,
 									stack, packedLight, packedOverlay);
 
 							poseStack.popPose();
 						} else if (type == 2) {
 							poseStack.pushPose();
 
-							PoseStack.Pose posestack$pose = poseStack.last();
+							posestack$pose = poseStack.last();
 
 							poseStack.scale(1.5F, 1.5F, 1.5F);
 							poseStack.translate(-0.15F, -0.15F, 0.0F);
@@ -209,93 +225,50 @@ public class MixinItemRenderer {
 											.getSprite(new ResourceLocation(Avaritia.MODID, "item/halo")) });
 
 							for (BakedQuad quad : quads) {
-								multiBufferSource.getBuffer(rendertype).putBulkData(posestack$pose, quad, 0.0F, 0.0F,
+								multiBufferSource.getBuffer(renderType).putBulkData(posestack$pose, quad, 0.0F, 0.0F,
 										0.0F, 0.6F, packedLight, packedOverlay, true);
 							}
 							poseStack.popPose();
 						}
 
+					}
+					if (stack.getItem() instanceof ItemSingularity) {
 						poseStack.pushPose();
 
-						if (type == 0) {
-							float scale = new Random().nextFloat() * 0.10F + 0.95F;
-							poseStack.scale(scale, scale, 1.0F);
+						posestack$pose = poseStack.last();
+
+						ItemSingularity singularity = ((ItemSingularity) stack.getItem());
+
+						for (int i = 0; i < 2; i++) {
+							List<BakedQuad> quads = bakeItem(new TextureAtlasSprite[] {
+									Minecraft.getInstance().getModelManager().getAtlas(InventoryMenu.BLOCK_ATLAS)
+											.getSprite(new ResourceLocation(Avaritia.MODID,
+													"item/singularity/singularity_layer_" + i)) });
+
+							float r = (i == 0 ? singularity.getColor().getRed() : singularity.getLayerColor().getRed())
+									/ 255.0F;
+							float g = (i == 0 ? singularity.getColor().getGreen()
+									: singularity.getLayerColor().getGreen()) / 255.0F;
+							float b = (i == 0 ? singularity.getColor().getBlue()
+									: singularity.getLayerColor().getBlue()) / 255.0F;
+							float a = (i == 0 ? singularity.getColor().getAlpha()
+									: singularity.getLayerColor().getAlpha()) / 255.0F;
+
+							for (BakedQuad quad : quads) {
+								multiBufferSource.getBuffer(renderType).putBulkData(posestack$pose, quad, r, g, b, a,
+										packedLight, packedOverlay, false);
+							}
+
 						}
 
-						itemRenderer.renderModelLists(bakedModel, stack, packedLight, packedOverlay, poseStack,
-								multiBufferSource.getBuffer(rendertype));
-
 						poseStack.popPose();
-
 					} else {
 						itemRenderer.renderModelLists(bakedModel, stack, packedLight, packedOverlay, poseStack,
-								multiBufferSource.getBuffer(rendertype));
+								multiBufferSource.getBuffer(renderType));
 					}
 				}
 			}
-			poseStack.popPose();
-		} else if (stack.getItem() instanceof ItemSingularity) {
-			callbackInfo.cancel();
-
-			ItemSingularity singularity = ((ItemSingularity) stack.getItem());
-
-			poseStack.pushPose();
-			model = net.neoforged.neoforge.client.ClientHooks.handleCameraTransforms(poseStack, model, context,
-					leftHand);
-			poseStack.translate(-0.5F, -0.5F, -0.5F);
-
-			// Minecraft mc = Minecraft.getInstance();
-			for (BakedModel bakedModel : model.getRenderPasses(stack, true)) {
-				for (RenderType rendertype : bakedModel.getRenderTypes(stack, true)) {
-
-					if (context == ItemDisplayContext.GUI) {
-						poseStack.pushPose();
-
-						PoseStack.Pose posestack$pose = poseStack.last();
-
-						poseStack.scale(1.5F, 1.5F, 1.5F);
-						poseStack.translate(-0.15F, -0.15F, 0.0F);
-
-						List<BakedQuad> quads = bakeItem(new TextureAtlasSprite[] {
-								Minecraft.getInstance().getModelManager().getAtlas(InventoryMenu.BLOCK_ATLAS)
-										.getSprite(new ResourceLocation(Avaritia.MODID, "item/halo")) });
-
-						for (BakedQuad quad : quads) {
-							multiBufferSource.getBuffer(rendertype).putBulkData(posestack$pose, quad, 0.0F, 0.0F, 0.0F,
-									0.6F, packedLight, packedOverlay, true);
-						}
-						poseStack.popPose();
-					}
-
-					poseStack.pushPose();
-
-					PoseStack.Pose posestack$pose = poseStack.last();
-
-					for (int i = 0; i < 2; i++) {
-						List<BakedQuad> quads = bakeItem(new TextureAtlasSprite[] {
-								Minecraft.getInstance().getModelManager().getAtlas(InventoryMenu.BLOCK_ATLAS)
-										.getSprite(new ResourceLocation(Avaritia.MODID,
-												"item/singularity/singularity_layer_" + i)) });
-
-						float r = (i == 0 ? singularity.getColor().getRed() : singularity.getLayerColor().getRed())
-								/ 255.0F;
-						float g = (i == 0 ? singularity.getColor().getGreen() : singularity.getLayerColor().getGreen())
-								/ 255.0F;
-						float b = (i == 0 ? singularity.getColor().getBlue() : singularity.getLayerColor().getBlue())
-								/ 255.0F;
-
-						for (BakedQuad quad : quads) {
-							multiBufferSource.getBuffer(rendertype).putBulkData(posestack$pose, quad, r, g, b, 1.0F,
-									packedLight, packedOverlay, false);
-						}
-
-					}
-					poseStack.popPose();
-				}
-			}
-
 			poseStack.popPose();
 		}
 	}
-
 }
