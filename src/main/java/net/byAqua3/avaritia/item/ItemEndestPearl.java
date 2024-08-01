@@ -25,6 +25,7 @@ public class ItemEndestPearl extends ItemHalo {
 		if(!level.isClientSide){
 			EntityEndestPearl endestPearl = new EntityEndestPearl(level);
 			endestPearl.setItem(stack);
+			endestPearl.setOwner(player);
 			endestPearl.setPos(player.getX(), player.getEyeY(), player.getZ());
 			endestPearl.shootFromRotation(player, player.getXRot(), player.getYRot(), 0.0F, 1.5F, 1.0F);
             level.addFreshEntity(endestPearl);
@@ -35,5 +36,4 @@ public class ItemEndestPearl extends ItemHalo {
         }
 		return InteractionResultHolder.success(stack);
 	}
-
 }
