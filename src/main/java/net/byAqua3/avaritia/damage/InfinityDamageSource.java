@@ -16,8 +16,8 @@ public class InfinityDamageSource extends DamageSource {
 	@Override
 	public Component getLocalizedDeathMessage(LivingEntity entity) {
 		LivingEntity attacker = entity.getKillCredit();
-		String key = "death.attack.infinity." + entity.level().getRandom().nextInt(1, 5);
+		String key = "death.attack.infinity." + (entity.level().getRandom().nextInt(5) + 1);
 		return Component.translatable(key, entity.getDisplayName(), attacker.getDisplayName());
 	}
-
+	
 }
