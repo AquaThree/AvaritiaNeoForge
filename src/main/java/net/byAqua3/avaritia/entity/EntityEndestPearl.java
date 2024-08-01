@@ -5,6 +5,7 @@ import net.byAqua3.avaritia.loader.AvaritiaItems;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.ThrowableItemProjectile;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
@@ -36,11 +37,13 @@ public class EntityEndestPearl extends ThrowableItemProjectile {
 
 			EntityGapingVoid gapingVoid = new EntityGapingVoid(level());
 			BlockPos blockPos = result.getBlockPos();
+			if(this.getOwner() instanceof Player) {
+			   gapingVoid.setPlayer((Player) this.getOwner());
+			}
 			gapingVoid.setPos(blockPos.getX(), blockPos.getY(), blockPos.getZ());
 			this.level().addFreshEntity(gapingVoid);
 
 			this.remove(RemovalReason.KILLED);
 		}
 	}
-
 }
